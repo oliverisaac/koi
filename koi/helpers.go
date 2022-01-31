@@ -2,14 +2,13 @@ package koi
 
 import (
 	"bufio"
-	"io"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 func extractValueArgumentFromArgs(args []string, argumentFlags ...string) string {
@@ -42,7 +41,7 @@ func extractBoolArgumentFromArgs(args []string, argumentFlags ...string) bool {
 				val := strings.SplitN(a, "=", 2)[1]
 				ret, err := strconv.ParseBool(val)
 				if err != nil {
-					logrus.Error(errors.Wrapf(err, "Error parsing flags for %q", argumentFlags))
+					log.Error(errors.Wrapf(err, "Error parsing flags for %q", argumentFlags))
 				} else {
 					return ret
 				}
@@ -100,52 +99,47 @@ func appendArgument(args []string, flag string, val string) []string {
 }
 
 func runCommandAndFilterOutput(exe string, args []string, lineFilter ...func(line string) (modifiedLine string, shouldPrint bool)) (exitCode int, runError error) {
-	logrus.Tracef("going to run command: %q %q", exe, args)
-	ioReader, ioWriter := io.Pipe()
-	scanner := bufio.NewScanner(ioReader)
+	log.Tracef("going to run command: %q %q", exe, args)
 
 	cmd := exec.Command(exe, args...)
 	cmd.Stdin = os.Stdin
-	cmd.Stdout = ioWriter
 	cmd.Stderr = os.Stderr
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return 1, errors.Wrapf(err, "Failed to create stdout pipe")
+	}
+	scanner := bufio.NewScanner(stdout)
 
 	runErr := cmd.Start()
 	if runErr != nil {
 		return 1, errors.Wrapf(runErr, "Failed to start command %q", args)
 	}
 
-	doneChan := make(chan error)
-	go func() {
-		doneChan <- cmd.Wait()
-	}()
+	log.Trace("Start scanning")
+	for scanner.Scan() {
+		line := scanner.Text()
+		log.Tracef("Read line: %s", line[0:20])
 
-	keepRunning := true
-	for keepRunning {
-		select {
-		case runErr = <-doneChan:
-			logrus.Trace("Command has exited")
-			keepRunning = false
-		default:
-			keepRunning = true
-		}
-		if scanner.Scan() {
-			line := scanner.Text()
-
-			printLine := true
-			for _, filter := range lineFilter {
-				if line, printLine = filter(line); !printLine {
-					break
-				}
+		printLine := true
+		for _, filter := range lineFilter {
+			if line, printLine = filter(line); !printLine {
+				break
 			}
-			if printLine {
-				_, runErr = os.Stdout.Write([]byte(line + "\n"))
-				if runErr != nil {
-					return 1, errors.Wrapf(runErr, "Failed to write to stdout")
-				}
+		}
+		if printLine {
+			_, runErr = os.Stdout.Write([]byte(line + "\n"))
+			if runErr != nil {
+				return 1, errors.Wrapf(runErr, "Failed to write to stdout")
 			}
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		return 1, errors.Wrapf(err, "Failed to scan")
+	}
 
+	log.Trace("Done scanning")
+
+	runErr = cmd.Wait()
 	exitCode = cmd.ProcessState.ExitCode()
 	return exitCode, errors.Wrapf(runErr, "Failed to run command %q", args)
 }
