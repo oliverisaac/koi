@@ -51,23 +51,14 @@ func extractBoolArgumentFromArgs(args []string, argumentFlags ...string) bool {
 	return false
 }
 
-func copyImportantArgsIntoNewArgs(oldArgs, newArgs []string) []string {
-	importantValueArgs := [][]string{
-		{"-n", "--namespace"},
-		{"--context"},
-	}
-
-	importantBoolArgs := [][]string{
-		{"--all-namespaces"},
-	}
-
-	for _, ia := range importantValueArgs {
+func copyArgsIntoNewArgs(oldArgs, newArgs []string, copyValueArgs, copyBoolArgs [][]string) []string {
+	for _, ia := range copyValueArgs {
 		val := extractValueArgumentFromArgs(oldArgs, ia...)
 		if val != "" {
 			newArgs = appendArgument(newArgs, ia[0], val)
 		}
 	}
-	for _, ia := range importantBoolArgs {
+	for _, ia := range copyBoolArgs {
 		val := extractBoolArgumentFromArgs(oldArgs, ia...)
 		if val {
 			newArgs = appendArgument(newArgs, ia[0], "")
@@ -118,12 +109,12 @@ func runCommandAndFilterOutput(exe string, args []string, lineFilter ...func(lin
 	log.Trace("Start scanning")
 	for scanner.Scan() {
 		line := scanner.Text()
-		log.Tracef("Read line: %s", line[0:20])
-
 		printLine := true
 		for _, filter := range lineFilter {
-			if line, printLine = filter(line); !printLine {
-				break
+			if filter != nil {
+				if line, printLine = filter(line); !printLine {
+					break
+				}
 			}
 		}
 		if printLine {
