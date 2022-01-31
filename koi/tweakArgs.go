@@ -37,10 +37,7 @@ func ApplyTweaksToArgs(args []string) []string {
 		},
 	}
 
-	lastArgPos := 0
-
 	for i, arg := range args {
-		lastArgPos = i
 		if arg == "--" {
 			break
 		}
@@ -63,17 +60,13 @@ func ApplyTweaksToArgs(args []string) []string {
 		}
 	}
 
-	outputArgs := make([]string, 0, len(args)+len(defaultValuesForFlags))
-
-	outputArgs = append(outputArgs, args[0:lastArgPos]...)
 	for _, dv := range defaultValuesForFlags {
 		if dv.value != "" && !dv.alreadySet {
-			outputArgs = append(outputArgs, dv.flagsThatMatch[0], dv.value)
+			args = appendArgument(args, dv.flagsThatMatch[0], dv.value)
 		}
 	}
-	outputArgs = append(outputArgs, args[lastArgPos:]...)
 
-	return outputArgs
+	return args
 }
 
 func stringArrayContains(haystack []string, needle string) bool {
