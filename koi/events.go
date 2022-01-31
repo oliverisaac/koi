@@ -13,7 +13,7 @@ func EventsCommand(exe string, args []string) (exitCode int, runError error) {
 		cmdArg,
 		[][]string{
 			{"-n", "--namespace"},
-			{"-o", "--ouptut"},
+			{"-o", "--output"},
 			{"--context"},
 		},
 		[][]string{
