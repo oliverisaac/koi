@@ -29,6 +29,8 @@ func main() {
 	requestedKoiCommand := koi.GetCommand(koiArgs)
 	if requestedKoiCommand == "events" {
 		exitCode, err = koi.EventsCommand(exe, koiArgs)
+	} else if requestedKoiCommand == "fish" {
+		exitCode, err = koi.FishCommand(exe, koiArgs)
 	} else if requestedKoiCommand == "version" {
 		fmt.Printf("Koi version: %s (%s)\n", version, commit)
 		exitCode, err = runAttachedCommand(exe, koiArgs...)
