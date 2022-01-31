@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -9,6 +10,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+var version string = "unset-version"
+var commit string = "unset-commit"
 
 func main() {
 	var exitCode int
@@ -25,6 +29,9 @@ func main() {
 	requestedKoiCommand := koi.GetCommand(koiArgs)
 	if requestedKoiCommand == "events" {
 		exitCode, err = koi.EventsCommand(exe, koiArgs)
+	} else if requestedKoiCommand == "version" {
+		fmt.Printf("Koi version: %s (%s)\n", version, commit)
+		exitCode, err = runAttachedCommand(exe, koiArgs...)
 	} else {
 		exitCode, err = runAttachedCommand(exe, koiArgs...)
 	}
