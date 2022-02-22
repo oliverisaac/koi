@@ -38,7 +38,7 @@ func main() {
 		exitCode, err = runAttachedCommand(exe, koiArgs...)
 	}
 
-	if err != nil {
+	if exitCode == 0 && err != nil {
 		log.Fatal(errors.Wrap(err, "Failed to run the command"))
 		os.Exit(1)
 	}
