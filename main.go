@@ -34,11 +34,13 @@ func main() {
 	} else if requestedKoiCommand == "version" {
 		fmt.Printf("Koi version: %s (%s)\n", version, commit)
 		exitCode, err = runAttachedCommand(exe, koiArgs...)
+	} else if requestedKoiCommand == "export" {
+		exitCode, err = koi.ExportCommand(os.Stdin, os.Stdout)
 	} else {
 		exitCode, err = runAttachedCommand(exe, koiArgs...)
 	}
 
-	if exitCode == 0 && err != nil {
+	if err != nil {
 		log.Fatal(errors.Wrap(err, "Failed to run the command"))
 		os.Exit(1)
 	}
