@@ -25,7 +25,7 @@ func main() {
 	}
 
 	exe := defaultEnv("KOI_KUBECTL_EXE", "kubectl")
-	koiArgs := koi.ApplyTweaksToArgs(os.Args[1:])
+	koiArgs, filterExe, filterCommand := koi.ApplyTweaksToArgs(os.Args[1:])
 
 	requestedKoiCommand := koi.GetCommand(koiArgs)
 	if requestedKoiCommand == "events" {
@@ -34,11 +34,11 @@ func main() {
 		exitCode, err = koi.FishCommand(exe, koiArgs)
 	} else if requestedKoiCommand == "version" {
 		fmt.Printf("Koi version: %s (%s)\n", version, commit)
-		exitCode, err = runAttachedCommand(exe, koiArgs...)
+		exitCode, err = runAttachedCommand(exe, filterExe, filterCommand, koiArgs)
 	} else if requestedKoiCommand == "export" {
 		exitCode, err = koi.ExportCommand(os.Stdin, os.Stdout)
 	} else {
-		exitCode, err = runAttachedCommand(exe, koiArgs...)
+		exitCode, err = runAttachedCommand(exe, filterExe, filterCommand, koiArgs)
 	}
 
 	if err != nil {
@@ -55,23 +55,39 @@ func defaultEnv(env string, defaultVal string) string {
 	return defaultVal
 }
 
-func runAttachedCommand(command string, args ...string) (exitCode int, runErr error) {
+func runAttachedCommand(command string, filterExe string, filterCommand string, args []string) (exitCode int, runErr error) {
 	cmd := exec.Command(command, args...)
 	cmd.Stdin = os.Stdin
-
-	yqIn, cmdOut := io.Pipe()
-	yqCmd := exec.Command("yq", "-P")
-
-	yqCmd.Stdin = yqIn
-	yqCmd.Stdout = os.Stdout
-	yqCmd.Stderr = os.Stderr
-
-	cmd.Stdout = cmdOut
+	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	yqErr := yqCmd.Start()
-	if yqErr != nil {
-		return 1, errors.Wrapf(yqErr, "Failed to start yq command")
+	var yqCmd *exec.Cmd
+	var cmdOut *io.PipeWriter
+	if filterExe != "" {
+		var yqIn *io.PipeReader
+		yqIn, cmdOut = io.Pipe()
+		filterArgs := []string{}
+		if filterExe == "yq" {
+			filterArgs = append(filterArgs, "-P")
+		} else if filterExe == "jq" {
+			filterArgs = append(filterArgs, "-r")
+		}
+		filterArgs = append(filterArgs, filterCommand)
+		yqCmd = exec.Command(filterExe, filterArgs...)
+
+		yqCmd.Stdin = yqIn
+		yqCmd.Stdout = os.Stdout
+		yqCmd.Stderr = os.Stderr
+
+		cmd.Stdout = cmdOut
+		cmd.Stderr = os.Stderr
+	}
+
+	if yqCmd != nil {
+		yqErr := yqCmd.Start()
+		if yqErr != nil {
+			return 1, errors.Wrapf(yqErr, "Failed to start yq command")
+		}
 	}
 
 	cmdErr := cmd.Start()
@@ -79,14 +95,14 @@ func runAttachedCommand(command string, args ...string) (exitCode int, runErr er
 		return 1, errors.Wrapf(cmdErr, "Failed to start command %q %q", command, args)
 	}
 
-	log.Println("Waiting for cmd to finish...")
 	ps, cmdErr := cmd.Process.Wait()
-	cmdOut.Close()
 
-	log.Println("Waiting for yq to finish...")
-	_, yqErr = yqCmd.Process.Wait()
-	if yqErr != nil {
-		return 1, errors.Wrapf(yqErr, "Failed to run yq command")
+	if yqCmd != nil {
+		cmdOut.Close()
+		_, yqErr := yqCmd.Process.Wait()
+		if yqErr != nil {
+			return 1, errors.Wrapf(yqErr, "Failed to run yq command")
+		}
 	}
 
 	exitCode = ps.ExitCode()

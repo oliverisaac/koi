@@ -8,10 +8,12 @@ import (
 
 func Test_ApplyTweaksToArgs(t *testing.T) {
 	tests := []struct {
-		name string
-		args []string
-		want []string
-		env  map[string]string
+		name              string
+		args              []string
+		env               map[string]string
+		want              []string
+		wantFilterExe     string
+		wantFilterCommand string
 	}{
 		{
 			name: "-x flag should be changed to --context",
@@ -74,14 +76,56 @@ func Test_ApplyTweaksToArgs(t *testing.T) {
 				"KOI_NS":  "koi",
 			},
 		},
+		{
+			name:              "If yq is set, next arg is the filter exe",
+			args:              []string{"exec", "--yq", ".containers"},
+			want:              []string{"exec", "--output=json"},
+			wantFilterExe:     "yq",
+			wantFilterCommand: ".containers",
+		},
+		{
+			name:              "If yq is set, next arg is the filter exe",
+			args:              []string{"exec", "--jq"},
+			want:              []string{"exec", "--output=json"},
+			wantFilterExe:     "jq",
+			wantFilterCommand: ".",
+		},
+		{
+			name:              "If output is set to yq, then make a filter with that",
+			args:              []string{"exec", "-o", "yq=.containers"},
+			want:              []string{"exec", "--output=json"},
+			wantFilterExe:     "yq",
+			wantFilterCommand: ".containers",
+		},
+		{
+			name:              "If output is set to yq then make a filter with .",
+			args:              []string{"exec", "-o", "yq"},
+			want:              []string{"exec", "--output=json"},
+			wantFilterExe:     "yq",
+			wantFilterCommand: ".",
+		},
+		{
+			name:              "If output is set to yq then make a filter with .",
+			args:              []string{"exec", "-o", "jq"},
+			want:              []string{"exec", "--output=json"},
+			wantFilterExe:     "jq",
+			wantFilterCommand: ".",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			for key, val := range tt.env {
 				os.Setenv(key, val)
 			}
-			if got := ApplyTweaksToArgs(tt.args); !reflect.DeepEqual(got, tt.want) {
+			got, gotFilterExe, gotFilterCommand := ApplyTweaksToArgs(tt.args)
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("applyTweaksToArgs() got: %v, want: %v", got, tt.want)
+			}
+			if gotFilterExe != tt.wantFilterExe {
+				t.Errorf("applyTweaksToArgs() gotFilterExe: %v, want: %v", gotFilterExe, tt.wantFilterExe)
+			}
+			if gotFilterCommand != tt.wantFilterCommand {
+				t.Errorf("applyTweaksToArgs() gotFilterCommand: %v, want: %v", gotFilterCommand, tt.wantFilterCommand)
 			}
 			for key := range tt.env {
 				os.Unsetenv(key)
