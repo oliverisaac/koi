@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -57,10 +58,37 @@ func defaultEnv(env string, defaultVal string) string {
 func runAttachedCommand(command string, args ...string) (exitCode int, runErr error) {
 	cmd := exec.Command(command, args...)
 	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
+
+	yqIn, cmdOut := io.Pipe()
+	yqCmd := exec.Command("yq", "-P")
+
+	yqCmd.Stdin = yqIn
+	yqCmd.Stdout = os.Stdout
+	yqCmd.Stderr = os.Stderr
+
+	cmd.Stdout = cmdOut
 	cmd.Stderr = os.Stderr
 
-	runErr = cmd.Run()
-	exitCode = cmd.ProcessState.ExitCode()
-	return exitCode, errors.Wrapf(runErr, "Failed to run command %q %q", command, args)
+	yqErr := yqCmd.Start()
+	if yqErr != nil {
+		return 1, errors.Wrapf(yqErr, "Failed to start yq command")
+	}
+
+	cmdErr := cmd.Start()
+	if cmdErr != nil {
+		return 1, errors.Wrapf(cmdErr, "Failed to start command %q %q", command, args)
+	}
+
+	log.Println("Waiting for cmd to finish...")
+	ps, cmdErr := cmd.Process.Wait()
+	cmdOut.Close()
+
+	log.Println("Waiting for yq to finish...")
+	_, yqErr = yqCmd.Process.Wait()
+	if yqErr != nil {
+		return 1, errors.Wrapf(yqErr, "Failed to run yq command")
+	}
+
+	exitCode = ps.ExitCode()
+	return exitCode, errors.Wrapf(cmdErr, "Failed to run command %q %q", command, args)
 }
