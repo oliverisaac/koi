@@ -15,5 +15,10 @@ Koi is a wrapper around kubectl that provides additional features:
 # Installation:
 
 ```
-brew install oliverisaac/tap/koi
+brew install jq yq oliverisaac/tap/koi
 ```
+
+You will also need `yq` and JQ installed:
+
+yq: https://github.com/mikefarah/yq
+jq: https://stedolan.github.io/jq/
