@@ -88,6 +88,8 @@ func ApplyTweaksToArgs(args []string) ([]string, string, string) {
 				} else {
 					arg = "--" + outputFormat + "=."
 				}
+			} else {
+				arg = "--output=" + outputFormat
 			}
 		}
 
