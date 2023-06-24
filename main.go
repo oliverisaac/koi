@@ -37,6 +37,9 @@ func main() {
 		exitCode, err = runAttachedCommand(exe, filterExe, filterCommand, koiArgs)
 	} else if requestedKoiCommand == "export" {
 		exitCode, err = koi.ExportCommand(os.Stdin, os.Stdout)
+	} else if requestedKoiCommand == "shell" {
+		koiArgs = removeArg(koiArgs, "shell")
+		exitCode, err = koi.ShellCommand(exe, koiArgs)
 	} else {
 		exitCode, err = runAttachedCommand(exe, filterExe, filterCommand, koiArgs)
 	}
@@ -46,6 +49,15 @@ func main() {
 		os.Exit(1)
 	}
 	os.Exit(exitCode)
+}
+
+func removeArg(args []string, arg string) []string {
+	for i, a := range args {
+		if a == arg {
+			return append(args[:i], args[i+1:]...)
+		}
+	}
+	return args
 }
 
 func defaultEnv(env string, defaultVal string) string {
