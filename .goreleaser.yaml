@@ -1,4 +1,5 @@
 
+version: 2
 # This is an example .goreleaser.yml file with some sensible defaults.
 # Make sure to check the documentation at https://goreleaser.com
 before:
@@ -18,23 +19,21 @@ builds:
     binary: koi
 
 archives:
-  - replacements:
-      amd64: x86_64
-    files:
+  - files:
     - README.md
 
 checksum:
   name_template: 'checksums.txt'
 
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 
 # From: https://medium.com/@ben.lafferty/deploying-go-cli-applications-316e9cca16a4
 brews:
-  - tap:
+  - repository:
         owner: oliverisaac
         name: homebrew-tap
-    folder: Formula
+    directory: Formula
     homepage: https://github.com/oliverisaac/koi
     description: Kubectl wrapper command
 
