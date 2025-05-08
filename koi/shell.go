@@ -83,7 +83,7 @@ func ShellCommand(exe string, args []string) (exitCode int, runError error) {
 	defer runExternalCommand(nil, append(kubectlArgs, "delete", "--wait=false", "pod", shell.name)...)
 
 	log.Info("Waiting for shell pod to be ready...")
-	err = runExternalCommand(strings.NewReader(podJSON), append(kubectlArgs, "wait", "--for=condition=ready", "pod", shell.name)...)
+	err = runExternalCommand(strings.NewReader(podJSON), append(kubectlArgs, "wait", "--timeout", shell.timeout.String(), "--for=condition=ready", "pod", shell.name)...)
 	if err != nil {
 		return 1, fmt.Errorf("failed to wait for shell pod to be ready: %w", err)
 	}
