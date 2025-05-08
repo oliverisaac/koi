@@ -27,6 +27,7 @@ func main() {
 	exe := defaultEnv("KOI_KUBECTL_EXE", "kubectl")
 	koiArgs, filterExe, filterCommand := koi.ApplyTweaksToArgs(os.Args[1:])
 
+	baseCommand := os.Args[0]
 	requestedKoiCommand := koi.GetCommand(koiArgs)
 	logrus.Debugf("Requested command: %s", requestedKoiCommand)
 	if requestedKoiCommand == "events" {
@@ -38,10 +39,10 @@ func main() {
 		exitCode, err = runAttachedCommand(exe, filterExe, filterCommand, koiArgs)
 	} else if requestedKoiCommand == "export" {
 		exitCode, err = koi.ExportCommand(os.Stdin, os.Stdout)
-	} else if requestedKoiCommand == "shell" {
+	} else if requestedKoiCommand == "shell" || baseCommand == "kshell" {
 		koiArgs = removeArg(koiArgs, "shell")
 		exitCode, err = koi.ShellCommand(exe, koiArgs)
-	} else if requestedKoiCommand == "containers" {
+	} else if requestedKoiCommand == "containers" || baseCommand == "kcontainers" {
 		koiArgs = removeArg(koiArgs, "containers")
 		exitCode, err = koi.ContainersCommand(koiArgs)
 	} else {
@@ -57,6 +58,9 @@ func main() {
 
 func removeArg(args []string, arg string) []string {
 	for i, a := range args {
+		if a == "--" {
+			return args
+		}
 		if a == arg {
 			return append(args[:i], args[i+1:]...)
 		}

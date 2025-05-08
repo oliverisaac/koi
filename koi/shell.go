@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	k8sv1 "k8s.io/api/core/v1"
@@ -80,7 +81,10 @@ func ShellCommand(exe string, args []string) (exitCode int, runError error) {
 	}
 
 	// Clean up when we're done
-	defer runExternalCommand(nil, append(kubectlArgs, "delete", "--wait=false", "pod", shell.name)...)
+	defer func() {
+		logrus.Info("Deleting started pod...")
+		runExternalCommand(nil, append(kubectlArgs, "delete", "--wait=false", "pod", shell.name)...)
+	}()
 
 	log.Info("Waiting for shell pod to be ready...")
 	err = runExternalCommand(strings.NewReader(podJSON), append(kubectlArgs, "wait", "--timeout", shell.timeout.String(), "--for=condition=ready", "pod", shell.name)...)

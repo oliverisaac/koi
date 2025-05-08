@@ -37,6 +37,9 @@ brews:
     directory: Formula
     homepage: https://github.com/oliverisaac/koi
     description: Kubectl wrapper command
+    extra_install: |
+      bin.install_symlink "koi" => "kcontainers"
+      bin.install_symlink "koi" => "kshell"
 
 changelog:
   sort: asc
