@@ -49,7 +49,7 @@ func ShellCommand(exe string, args []string) (exitCode int, runError error) {
 
 	shell.command = f.Args()
 
-	for shell.reason == "" {
+	for shell.reason == "" && os.Getenv("KOI_SHELL_REQUIRE_REASON") == "true" {
 		log.Error("You must provide a reason for the shell")
 		fmt.Print("Enter a reason for this shell: ")
 		_, err := fmt.Scanf("%s", &shell.reason)

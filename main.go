@@ -28,6 +28,7 @@ func main() {
 	koiArgs, filterExe, filterCommand := koi.ApplyTweaksToArgs(os.Args[1:])
 
 	requestedKoiCommand := koi.GetCommand(koiArgs)
+	logrus.Debugf("Requested command: %s", requestedKoiCommand)
 	if requestedKoiCommand == "events" {
 		exitCode, err = koi.EventsCommand(exe, koiArgs)
 	} else if requestedKoiCommand == "fish" {
