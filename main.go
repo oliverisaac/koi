@@ -41,6 +41,9 @@ func main() {
 	} else if requestedKoiCommand == "shell" {
 		koiArgs = removeArg(koiArgs, "shell")
 		exitCode, err = koi.ShellCommand(exe, koiArgs)
+	} else if requestedKoiCommand == "containers" {
+		koiArgs = removeArg(koiArgs, "containers")
+		exitCode, err = koi.ContainersCommand(koiArgs)
 	} else {
 		exitCode, err = runAttachedCommand(exe, filterExe, filterCommand, koiArgs)
 	}
