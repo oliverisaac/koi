@@ -45,6 +45,9 @@ func main() {
 	} else if requestedKoiCommand == "containers" || baseCommand == "kcontainers" {
 		koiArgs = removeArg(koiArgs, "containers")
 		exitCode, err = koi.ContainersCommand(koiArgs)
+	} else if requestedKoiCommand == "really-get-all" {
+		koiArgs = removeArg(koiArgs, "really-get-all")
+		exitCode, err = koi.ReallyGetAllCommand(exe, koiArgs)
 	} else {
 		exitCode, err = runAttachedCommand(exe, filterExe, filterCommand, koiArgs)
 	}
